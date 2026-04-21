@@ -120,8 +120,13 @@ def crear_nota(nota: Nota):
 
     try:
         connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=RABBITMQ_HOST, heartbeat=600)
-        )
+    pika.ConnectionParameters(
+        host=RABBITMQ_HOST,
+        port=5672,
+        credentials=pika.PlainCredentials("admin", "password123"),
+        heartbeat=600
+    )
+)
         channel = connection.channel()
         channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
         channel.basic_publish(
