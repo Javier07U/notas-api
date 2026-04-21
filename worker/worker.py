@@ -116,7 +116,12 @@ def callback(ch, method, properties, body):
 while True:
     try:
         connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=RABBITMQ_HOST, heartbeat=600)
+            pika.ConnectionParameters(
+                host=RABBITMQ_HOST,
+                port=5672,
+                credentials=pika.PlainCredentials("admin", "password123"),
+                heartbeat=600
+            )
         )
         channel = connection.channel()
         channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
