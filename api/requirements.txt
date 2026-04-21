@@ -2,6 +2,7 @@ fastapi
 uvicorn
 pika
 pymongo
+boto3
 pytest
 httpx
 flake8

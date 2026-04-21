@@ -4,18 +4,66 @@ import time
 import pika
 from pymongo import MongoClient
 from datetime import datetime
+import boto3
+from botocore.exceptions import ClientError
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/")
-RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
+
+# ==========================================
+# Parameter Store
+# ==========================================
+
+def get_ssm_parameter(name: str, default: str = None) -> str:
+    """
+    Consulta un parámetro del Parameter Store de AWS.
+    Si no existe, retorna el valor `default`.
+    """
+    client = boto3.client("ssm", region_name="us-east-1")
+    try:
+        response = client.get_parameter(Name=name)
+        return response["Parameter"]["Value"]
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ParameterNotFound":
+            print(f"[WARN] Parámetro '{name}' no encontrado. Usando valor por defecto: '{default}'")
+            return default
+        raise
+
+
+# ==========================================
+# Configuración — IPs desde Parameter Store
+# ==========================================
+
+_mongo_ip = get_ssm_parameter(
+    name="/notas-api/dev/mongodb/public_ip",
+    default=os.getenv("MONGO_HOST", "localhost"),
+)
+
+_rabbitmq_ip = get_ssm_parameter(
+    name="/notas-api/dev/rabbitmq/public_ip",
+    default=os.getenv("RABBITMQ_HOST", "localhost"),
+)
+
+MONGO_URI = f"mongodb://{_mongo_ip}:27017/"
+RABBITMQ_HOST = _rabbitmq_ip
 RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE", "notas_queue")
 DB_NAME = os.getenv("MONGO_DB", "notasdb")
 
+print(f"[INFO] MongoDB URI: {MONGO_URI}")
+print(f"[INFO] RabbitMQ Host: {RABBITMQ_HOST}")
+
+
+# ==========================================
+# DB helper
+# ==========================================
 
 def get_db():
     client = MongoClient(MONGO_URI)
     db = client[DB_NAME]
     return db
 
+
+# ==========================================
+# Callback del Worker
+# ==========================================
 
 def callback(ch, method, properties, body):
     data = json.loads(body)
@@ -60,6 +108,10 @@ def callback(ch, method, properties, body):
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
+
+# ==========================================
+# Loop principal
+# ==========================================
 
 while True:
     try:
