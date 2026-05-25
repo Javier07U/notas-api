@@ -1,0 +1,8 @@
+aws_region   = "us-east-1"
+instance_type = "t2.micro"
+key_name     = "TU_KEY_PAIR"
+my_ip_cidr   = "TU_IP_PUBLICA/32"
+
+# Opcional. Si los dejas vacíos usa default VPC y dos subnets default.
+# vpc_id = "vpc-xxxx"
+# subnet_ids = ["subnet-xxxx", "subnet-yyyy"]

@@ -1,0 +1,47 @@
+services:
+  mongo:
+    image: mongo:6
+    container_name: notas-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: always
+
+  rabbitmq:
+    image: rabbitmq:3
+    container_name: notas-rabbitmq
+    ports:
+      - "5672:5672"
+    restart: always
+
+  api:
+    build: ./api
+    container_name: notas-api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+      - rabbitmq
+    environment:
+      MONGO_URI: mongodb://mongo:27017/
+      MONGO_DB: notasdb
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_QUEUE: notas_queue
+    restart: always
+
+  worker:
+    build: ./worker
+    container_name: notas-worker
+    depends_on:
+      - mongo
+      - rabbitmq
+    environment:
+      MONGO_URI: mongodb://mongo:27017/
+      MONGO_DB: notasdb
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_QUEUE: notas_queue
+    restart: always
+
+volumes:
+  mongo_data:
